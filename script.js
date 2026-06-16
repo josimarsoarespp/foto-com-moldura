@@ -12,6 +12,13 @@ let currentStream = null;
 let useFrontCamera = false;
 let lastBlob = null;
 
+const frameImage = new Image();
+frameImage.src = 'assets/moldura.png';
+
+const EVENT_MESSAGE = 'Celebrando a plenitude da vida\ncom o coração cheio de alegria.';
+const EVENT_NAME = 'Kátia Menezes';
+const EVENT_DATE = '20/6/2026';
+
 async function startCamera() {
   stopCamera();
 
@@ -40,37 +47,57 @@ function stopCamera() {
   }
 }
 
-function drawRoundedRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
+function drawMultilineTextFit(ctx, text, x, y, maxWidth, startSize, color, lineHeightMultiplier = 1.25) {
+  const lines = text.split('\n');
+  let size = startSize;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `700 ${size}px Georgia, serif`;
+
+  while (lines.some(line => ctx.measureText(line).width > maxWidth) && size > 22) {
+    size -= 2;
+    ctx.font = `700 ${size}px Georgia, serif`;
+  }
+
+  const lineHeight = size * lineHeightMultiplier;
+  const startY = y - ((lines.length - 1) * lineHeight) / 2;
+
+  ctx.fillStyle = color;
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = Math.max(3, size * 0.08);
+
+  lines.forEach((line, index) => {
+    const currentY = startY + index * lineHeight;
+    ctx.strokeText(line, x, currentY);
+    ctx.fillText(line, x, currentY);
+  });
 }
 
-function drawTextFit(ctx, text, x, y, maxWidth, startSize, color) {
+function drawTextFit(ctx, text, x, y, maxWidth, startSize, color, font = '900 {size}px Georgia, serif') {
   let size = startSize;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 ${size}px Arial`;
-  while (ctx.measureText(text).width > maxWidth && size > 24) {
+  ctx.font = font.replace('{size}', size);
+
+  while (ctx.measureText(text).width > maxWidth && size > 22) {
     size -= 2;
-    ctx.font = `900 ${size}px Arial`;
+    ctx.font = font.replace('{size}', size);
   }
-  ctx.lineWidth = Math.max(5, size * 0.13);
-  ctx.strokeStyle = 'rgba(0,0,0,.55)';
+
+  ctx.lineWidth = Math.max(3, size * 0.08);
+  ctx.strokeStyle = 'rgba(255,255,255,.65)';
   ctx.strokeText(text, x, y);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
 
 function capturePhoto() {
+  if (!video.videoWidth || !video.videoHeight) {
+    alert('A câmera ainda está carregando. Tente novamente em alguns segundos.');
+    return;
+  }
+
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = 1080;
@@ -94,36 +121,40 @@ function capturePhoto() {
 
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-  // Moldura desenhada na foto final
-  ctx.save();
-  ctx.lineWidth = 34;
-  ctx.strokeStyle = 'rgba(255,255,255,.95)';
-  drawRoundedRect(ctx, 34, 34, canvas.width - 68, canvas.height - 68, 54);
-  ctx.stroke();
+  // Moldura de girassóis enviada pelo usuário.
+  ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
-  ctx.lineWidth = 10;
-  ctx.strokeStyle = 'rgba(196,181,253,.95)';
-  drawRoundedRect(ctx, 62, 62, canvas.width - 124, canvas.height - 124, 38);
-  ctx.stroke();
+  // Textos finais do evento.
+  drawMultilineTextFit(
+    ctx,
+    EVENT_MESSAGE,
+    canvas.width / 2,
+    1458,
+    canvas.width * 0.72,
+    46,
+    '#6b3f1d'
+  );
 
-  // Brilho inferior
-  const gradient = ctx.createLinearGradient(0, canvas.height * .72, 0, canvas.height);
-  gradient.addColorStop(0, 'rgba(0,0,0,0)');
-  gradient.addColorStop(1, 'rgba(0,0,0,.55)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, canvas.height * .72, canvas.width, canvas.height * .28);
+  drawTextFit(
+    ctx,
+    EVENT_NAME,
+    canvas.width / 2,
+    1588,
+    canvas.width * 0.72,
+    78,
+    '#d6a500',
+    'italic 900 {size}px Georgia, serif'
+  );
 
-  drawTextFit(ctx, 'KYARA • 15 ANOS', canvas.width / 2, 130, canvas.width * .84, 72, '#ffffff');
-  drawTextFit(ctx, 'Uma noite inesquecível', canvas.width / 2, canvas.height - 120, canvas.width * .84, 56, '#fff7ed');
-
-  ctx.font = '900 54px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#fde68a';
-  ctx.strokeStyle = 'rgba(0,0,0,.45)';
-  ctx.lineWidth = 7;
-  ctx.strokeText('✦ ✧ ✦', canvas.width / 2, 230);
-  ctx.fillText('✦ ✧ ✦', canvas.width / 2, 230);
-  ctx.restore();
+  drawTextFit(
+    ctx,
+    EVENT_DATE,
+    canvas.width / 2,
+    1692,
+    canvas.width * 0.55,
+    44,
+    '#6b3f1d'
+  );
 
   canvas.toBlob(blob => {
     lastBlob = blob;
@@ -149,12 +180,16 @@ newPhotoBtn.addEventListener('click', () => {
 
 shareBtn.addEventListener('click', async () => {
   if (!lastBlob) return;
-  const file = new File([lastBlob], 'foto-com-moldura.png', { type: 'image/png' });
+  const file = new File([lastBlob], 'foto-katia-menezes.png', { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({ files: [file], title: 'Foto com moldura' });
+    await navigator.share({ files: [file], title: 'Foto com moldura - Kátia Menezes' });
   } else {
     alert('Seu navegador não permite compartilhar direto. Use o botão Baixar foto.');
   }
 });
 
-startCamera();
+frameImage.onload = () => startCamera();
+frameImage.onerror = () => {
+  alert('Não consegui carregar a moldura. Verifique se o arquivo assets/moldura.png está no GitHub.');
+  startCamera();
+};

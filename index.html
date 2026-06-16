@@ -1,44 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Foto com Moldura - Kátia Menezes</title>
-  <link rel="stylesheet" href="style.css?v=katia2" />
+  <link rel="preload" as="image" href="assets/moldura-katia-v3.png?v=4" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <main class="app">
     <section id="cameraScreen" class="screen active">
-      <div class="stage" id="stage">
+      <div class="stage">
         <video id="video" autoplay playsinline muted></video>
-        <img class="molduraPreview" src="assets/moldura.png?v=katia2" alt="" aria-hidden="true" />
+
+        <img
+          id="overlayFrame"
+          src="assets/moldura-katia-v3.png?v=4"
+          alt="Moldura de girassóis"
+        />
 
         <div class="textOverlay" aria-hidden="true">
-          <div class="messageText">Celebrando a plenitude da vida<br>com o coração cheio de alegria.</div>
-          <div class="nameText">Kátia Menezes</div>
-          <div class="dateText">20/6/2026</div>
+          <p class="phrase">Celebrando a plenitude da vida com o coração cheio de alegria.</p>
+          <h1>Kátia Menezes</h1>
+          <p class="date">20/6/2026</p>
+        </div>
+
+        <button id="switchCameraBtn" class="topButton" type="button">🔄 Câmera</button>
+
+        <div class="cameraControls">
+          <button id="captureBtn" class="captureButton" type="button" aria-label="Capturar foto">
+            📸
+          </button>
         </div>
       </div>
-
-      <div class="controls cameraControls">
-        <button id="switchCameraBtn" class="secondary">🔄 Trocar câmera</button>
-        <button id="captureBtn" class="primary">📸 Capturar</button>
-      </div>
-      <p class="tip">Ao abrir, permita o acesso à câmera. Funciona melhor pelo link HTTPS do GitHub Pages.</p>
     </section>
 
     <section id="resultScreen" class="screen">
-      <h1>Sua foto ficou pronta 🎉</h1>
-      <img id="resultImage" alt="Foto com moldura" />
-      <div class="controls resultControls">
-        <button id="newPhotoBtn" class="secondary">Tirar outra</button>
-        <a id="downloadLink" class="primary" download="foto-katia-menezes.png">Baixar foto</a>
-        <button id="shareBtn" class="secondary">Compartilhar</button>
+      <div class="resultWrap">
+        <img id="resultImage" alt="Foto capturada com moldura" />
+      </div>
+
+      <div class="resultActions">
+        <button id="newPhotoBtn" type="button">Nova foto</button>
+        <a id="downloadLink" download="foto-katia-menezes.png">Baixar foto</a>
+        <button id="shareBtn" type="button">Compartilhar</button>
       </div>
     </section>
   </main>
 
-  <script src="script.js?v=katia2"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

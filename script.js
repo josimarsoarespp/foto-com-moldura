@@ -8,16 +8,29 @@ const downloadLink = document.getElementById('downloadLink');
 const cameraScreen = document.getElementById('cameraScreen');
 const resultScreen = document.getElementById('resultScreen');
 
+const FRAME_SRC = 'assets/moldura-katia-v3.png?v=4';
+const EVENT_PHRASE = 'Celebrando a plenitude da vida com o coração cheio de alegria.';
+const EVENT_NAME = 'Kátia Menezes';
+const EVENT_DATE = '20/6/2026';
+
 let currentStream = null;
 let useFrontCamera = false;
 let lastBlob = null;
+let frameImage = null;
 
-const frameImage = new Image();
-frameImage.src = 'assets/moldura.png?v=katia2';
+function preloadFrame() {
+  return new Promise((resolve, reject) => {
+    if (frameImage && frameImage.complete) {
+      resolve(frameImage);
+      return;
+    }
 
-const EVENT_MESSAGE = 'Celebrando a plenitude da vida\ncom o coração cheio de alegria.';
-const EVENT_NAME = 'Kátia Menezes';
-const EVENT_DATE = '20/6/2026';
+    frameImage = new Image();
+    frameImage.onload = () => resolve(frameImage);
+    frameImage.onerror = reject;
+    frameImage.src = FRAME_SRC;
+  });
+}
 
 async function startCamera() {
   stopCamera();
@@ -32,8 +45,10 @@ async function startCamera() {
   };
 
   try {
+    await preloadFrame();
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = currentStream;
+    await video.play();
   } catch (error) {
     alert('Não consegui abrir a câmera. Verifique se você permitiu o acesso e se abriu pelo link HTTPS.');
     console.error(error);
@@ -47,64 +62,94 @@ function stopCamera() {
   }
 }
 
-function drawMultilineTextFit(ctx, text, x, y, maxWidth, startSize, color, lineHeightMultiplier = 1.25) {
-  const lines = text.split('\n');
+function fitFont(ctx, text, maxWidth, startSize, minSize, fontFamily, weight = '900') {
   let size = startSize;
+  ctx.font = `${weight} ${size}px ${fontFamily}`;
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `700 ${size}px Georgia, serif`;
-
-  while (lines.some(line => ctx.measureText(line).width > maxWidth) && size > 22) {
+  while (ctx.measureText(text).width > maxWidth && size > minSize) {
     size -= 2;
-    ctx.font = `700 ${size}px Georgia, serif`;
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
   }
 
-  const lineHeight = size * lineHeightMultiplier;
-  const startY = y - ((lines.length - 1) * lineHeight) / 2;
+  return size;
+}
 
-  ctx.fillStyle = color;
-  ctx.strokeStyle = 'rgba(255,255,255,.55)';
-  ctx.lineWidth = Math.max(3, size * 0.08);
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
 
-  lines.forEach((line, index) => {
-    const currentY = startY + index * lineHeight;
-    ctx.strokeText(line, x, currentY);
-    ctx.fillText(line, x, currentY);
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawEventText(ctx, canvas) {
+  const centerX = canvas.width / 2;
+  const maxWidth = canvas.width * 0.74;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Frase
+  ctx.fillStyle = '#6b3b16';
+  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.lineWidth = 6;
+  ctx.font = '900 42px Arial';
+  const phraseLines = wrapText(ctx, EVENT_PHRASE, maxWidth);
+  const phraseStartY = 1510;
+
+  phraseLines.forEach((line, index) => {
+    const y = phraseStartY + index * 52;
+    ctx.strokeText(line, centerX, y);
+    ctx.fillText(line, centerX, y);
   });
+
+  // Nome
+  const nameSize = fitFont(ctx, EVENT_NAME, maxWidth, 82, 42, 'Georgia', '700');
+  ctx.font = `italic 700 ${nameSize}px Georgia`;
+  ctx.fillStyle = '#d8a300';
+  ctx.strokeStyle = 'rgba(95,53,0,.65)';
+  ctx.lineWidth = 5;
+  ctx.strokeText(EVENT_NAME, centerX, 1645);
+  ctx.fillText(EVENT_NAME, centerX, 1645);
+
+  // Data
+  ctx.font = '900 42px Arial';
+  ctx.fillStyle = '#6b3b16';
+  ctx.strokeStyle = 'rgba(255,255,255,.7)';
+  ctx.lineWidth = 5;
+  ctx.strokeText(EVENT_DATE, centerX, 1735);
+  ctx.fillText(EVENT_DATE, centerX, 1735);
+
+  ctx.restore();
 }
 
-function drawTextFit(ctx, text, x, y, maxWidth, startSize, color, font = '900 {size}px Georgia, serif') {
-  let size = startSize;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = font.replace('{size}', size);
-
-  while (ctx.measureText(text).width > maxWidth && size > 22) {
-    size -= 2;
-    ctx.font = font.replace('{size}', size);
-  }
-
-  ctx.lineWidth = Math.max(3, size * 0.08);
-  ctx.strokeStyle = 'rgba(255,255,255,.65)';
-  ctx.strokeText(text, x, y);
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
-}
-
-function capturePhoto() {
+async function capturePhoto() {
   if (!video.videoWidth || !video.videoHeight) {
-    alert('A câmera ainda está carregando. Tente novamente em alguns segundos.');
+    alert('A câmera ainda está carregando. Tente novamente em 1 segundo.');
     return;
   }
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
+
   canvas.width = 1080;
   canvas.height = 1920;
 
   const videoRatio = video.videoWidth / video.videoHeight;
   const canvasRatio = canvas.width / canvas.height;
+
   let sx, sy, sw, sh;
 
   if (videoRatio > canvasRatio) {
@@ -121,51 +166,18 @@ function capturePhoto() {
 
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-  // Moldura de girassóis enviada pelo usuário.
-  if (frameImage.complete && frameImage.naturalWidth > 0) {
-    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-  } else {
-    alert('A moldura ainda está carregando. Aguarde alguns segundos e tente novamente.');
-    return;
-  }
+  const moldura = await preloadFrame();
+  ctx.drawImage(moldura, 0, 0, canvas.width, canvas.height);
 
-  // Textos finais do evento.
-  drawMultilineTextFit(
-    ctx,
-    EVENT_MESSAGE,
-    canvas.width / 2,
-    1458,
-    canvas.width * 0.72,
-    46,
-    '#6b3f1d'
-  );
-
-  drawTextFit(
-    ctx,
-    EVENT_NAME,
-    canvas.width / 2,
-    1588,
-    canvas.width * 0.72,
-    78,
-    '#d6a500',
-    'italic 900 {size}px Georgia, serif'
-  );
-
-  drawTextFit(
-    ctx,
-    EVENT_DATE,
-    canvas.width / 2,
-    1692,
-    canvas.width * 0.55,
-    44,
-    '#6b3f1d'
-  );
+  drawEventText(ctx, canvas);
 
   canvas.toBlob(blob => {
     lastBlob = blob;
+
     const url = URL.createObjectURL(blob);
     resultImage.src = url;
     downloadLink.href = url;
+
     cameraScreen.classList.remove('active');
     resultScreen.classList.add('active');
   }, 'image/png', 1);
@@ -185,16 +197,18 @@ newPhotoBtn.addEventListener('click', () => {
 
 shareBtn.addEventListener('click', async () => {
   if (!lastBlob) return;
+
   const file = new File([lastBlob], 'foto-katia-menezes.png', { type: 'image/png' });
+
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({ files: [file], title: 'Foto com moldura - Kátia Menezes' });
+    await navigator.share({
+      files: [file],
+      title: 'Foto com moldura',
+      text: 'Foto com moldura - Kátia Menezes'
+    });
   } else {
     alert('Seu navegador não permite compartilhar direto. Use o botão Baixar foto.');
   }
 });
 
-frameImage.onload = () => startCamera();
-frameImage.onerror = () => {
-  alert('Não consegui carregar a moldura. Verifique se o arquivo assets/moldura.png está no GitHub.');
-  startCamera();
-};
+startCamera();

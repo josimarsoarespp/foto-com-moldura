@@ -13,7 +13,7 @@ let useFrontCamera = false;
 let lastBlob = null;
 
 const frameImage = new Image();
-frameImage.src = 'assets/moldura.png';
+frameImage.src = 'assets/moldura.png?v=katia2';
 
 const EVENT_MESSAGE = 'Celebrando a plenitude da vida\ncom o coração cheio de alegria.';
 const EVENT_NAME = 'Kátia Menezes';
@@ -122,7 +122,12 @@ function capturePhoto() {
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
   // Moldura de girassóis enviada pelo usuário.
-  ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+  if (frameImage.complete && frameImage.naturalWidth > 0) {
+    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+  } else {
+    alert('A moldura ainda está carregando. Aguarde alguns segundos e tente novamente.');
+    return;
+  }
 
   // Textos finais do evento.
   drawMultilineTextFit(
